@@ -2,7 +2,7 @@ const socket = io(); //trying to connect to the host that serves the page.
 
 // let's assume that the client page, once rendered, knows what room it wants to join
 
-socket.emit('create', 'room1');
+socket.on('create','room1')
 
 
 const form = document.getElementById("form");
