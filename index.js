@@ -2,19 +2,25 @@ const express = require ("express");
 require("./db/config")
 const User = require("./db/User")
 const {createServer} = require("node:http")
-const {join} = require("node:path")
+// const {join} = require("node:path")
 const {Server} = require("socket.io")
-
+const cors = require("cors")
 
 
 const app = express ();
-app.use(express.static(__dirname + '/public'));
+app.use(cors())
+// app.use(express.static(__dirname + '/public'));
 app.use(express.json());
-app.use(cors());
+
+
 
 const server = createServer(app);
 
-const io = new Server(server); //initialize new  instance of Socket.io by passing http server
+const io = new Server(server,{
+    cors:{
+        origin:'*'
+    }
+}); //initialize new  instance of Socket.io by passing http server
 
 // mongoose.connect("mongodb://127.0.0.1:27017/chatApp")
 // const userSchema =  new mongoose.Schema( {
@@ -38,7 +44,7 @@ const io = new Server(server); //initialize new  instance of Socket.io by passin
 io.on("connection", (socket) =>{
     console.log("a user connected");
 
-    socket.emit("chat message", "Welcome to the chat room!");
+    socket.emit("chat-message", "Welcome to the chat room!");
     
     //print out the chat message event
     socket.on("create",(room)=>{
@@ -49,10 +55,10 @@ io.on("connection", (socket) =>{
          
     
     
-    socket.on("chat message",(msg)=> {  // listen on "chat message" event for incoming chat messages
-        io.emit("chat message", msg)    // emit "chat message" event to all users.
-       //console.log("Message : "+msg)
-    })
+    socket.on("chat-message",(message=> {  // listen on "chat message" event for incoming chat messages
+        io.emit("chat-message", message)    // emit "chat message" event to all users.
+       console.log("Message : "+message)
+    }))
 
     socket.on("disconnect", () => {
         console.log("user disconnected"); // the Set contains at least the socket ID
@@ -61,16 +67,29 @@ io.on("connection", (socket) =>{
 })
 
 
-app.get("/", (req,res)=>{
-    res.sendFile(join(__dirname, "public/index.html"));
+// app.get("/", (req,res)=>{
+//     res.sendFile(join(__dirname, "public/index.html"));
     
-})
+// })
 app.post("/register", async (req, res) => {
     let user = new User(req.body);
     let result = await user.save();
     result = result.toObject();
     delete result.password;
     res.send(result);
+  });
+
+  app.post("/login", async (req, res) => {
+    let user = await User.findOne(req.body).select("-password");
+    if (req.body.password && req.body.email) {
+      if (user) {
+        res.send(user);
+      } else {
+        res.send({ result: "No User found" });
+      }
+    } else {
+      res.send({ result: "No User found" });
+    }
   });
 
 
